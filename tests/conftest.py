@@ -1,6 +1,6 @@
 import pytest
 
-from app.devices.utils import get_device_by_token
+from app.devices.utils import get_device_by_token, save_command, get_command_log_by_id
 from app.users.utils import get_user_by_id, save_user
 from app.users.constants import ROLE_MANAGER, ROLE_USER
 
@@ -30,8 +30,9 @@ def app(request):
 
     dsn = test_app.config['SQLALCHEMY_DATABASE_URI']
     drop_db(dsn)
+    test_app.cache.storage.flushall()
     create_db(dsn)
-    
+
     # Establish an application context before running the tests.
     ctx = test_app.app_context()
     ctx.push()
@@ -43,6 +44,7 @@ def app(request):
 
     def teardown():
         ctx.pop()
+        test_app.cache.storage.flushall()
 
     request.addfinalizer(teardown)
     return test_app
@@ -116,4 +118,22 @@ def login(app, client):
         )
         cookie = client.get_cookies(key=app.config['AUTH_COOKIE_NAME'])
         return cookie.value  # SID
+    return func
+
+
+@pytest.fixture(scope='function')
+def command_cache():
+    def creator(command, device_id):
+        resp = save_command(
+            command=command,
+            device_ids=[device_id],
+        )
+        return resp
+    return creator
+
+
+@pytest.fixture(scope='function')
+def get_command_record():
+    def func(device_id):
+        return get_command_log_by_id(device_id)
     return func

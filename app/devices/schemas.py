@@ -1,7 +1,7 @@
 from webargs import fields
 from webargs.fields import ma
 from marshmallow_sqlalchemy import ModelSchema
-from marshmallow import validates, ValidationError
+from marshmallow import validates, ValidationError, pre_load
 from marshmallow.validate import Length, Range, OneOf
 
 from app.common.schemas import FilterSchema, SuccessListSchema, sort_one_of
@@ -69,3 +69,15 @@ class UpdateContactSchema(ma.Schema):
     name = fields.Str(validate=Length(min=5, max=255), required=True)
     tel = fields.Str(validate=Length(min=10, max=255), required=True)
     comment = fields.Str(validate=Length(max=1024), missing=None)
+
+
+class SendCommandSchema(ma.Schema):
+    command = fields.Str(validate=OneOf([s[1] for s in DEVICE.COMMANDS]), missing=DEVICE.SHOW_INFO)
+    device_ids = fields.List(fields.Int(), validate=Length(min=1), required=True)
+
+    @pre_load
+    def check_device_ids(self, data, **_):
+        for i in data['device_ids']:
+            if not isinstance(i, int):
+                raise ValidationError('ValueError: Value must be int', field_name='device_ids')
+        return data

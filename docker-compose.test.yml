@@ -18,3 +18,6 @@ services:
 
   indoor-db:
     <<: *environment
+
+  indoor-redis:
+    command: ["--dbfilename test.aof"]

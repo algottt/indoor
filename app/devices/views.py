@@ -1,9 +1,11 @@
 from flask import Blueprint
 from sqlalchemy import or_
+import logging
 
 from app.locations.models import Location, City
 from app.common.decorators import admin_required, auth_required
 
+from . import constants as DEVICE
 from lib.factory import db
 from lib.utils import success, fail
 from lib.webargs import parser
@@ -16,9 +18,8 @@ from .schemas import (
     DeviceSchema,
     DeviceListSchema,
     RegisterDeviceSchema,
-    RegisteredDeviceSchema, ContactSchema, AddContactSchema, UpdateContactSchema)
-from .utils import save_device, save_contact
-
+    RegisteredDeviceSchema, ContactSchema, AddContactSchema, UpdateContactSchema, SendCommandSchema,)
+from .utils import save_device, save_contact, save_command, get_command_log_by_id
 
 mod = Blueprint('devices', __name__, url_prefix='/devices')
 
@@ -286,3 +287,66 @@ def add_contact_view(**kwargs):
         return fail(str(e))
 
     return success(ContactSchema().dump(contact))
+
+
+@mod.route('/commands/', methods=['POST'])
+@parser.use_kwargs(SendCommandSchema())
+def send_command_view(command, device_ids):
+    """Post command on devices.
+    ---
+    post:
+      tags:
+        - Commands
+      requestBody:
+        content:
+          application/json:
+            schema: SendCommandSchema
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  ok
+        400:
+          content:
+            application/json:
+              schema: FailSchema
+        5XX:
+          description: Unexpected error
+    """
+    save_command(command, device_ids)
+    return success('ok')
+
+
+@mod.route('/commands/<int:device_id>/')
+def commands_by_id_view(device_id):
+    """Get command log by device_id.
+    ---
+    get:
+      tags:
+        - Commands
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  [
+                    "command"
+                  ]
+        400:
+          content:
+            application/json:
+              schema: FailSchema
+        5XX:
+          description: Unexpected error
+    """
+    resp = get_command_log_by_id(device_id)
+    return success(resp)
