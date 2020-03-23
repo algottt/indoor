@@ -117,7 +117,7 @@ class Client:
         resp = func(url, **kwargs)
 
         if check_status:    
-            assert resp.status_code == check_status, resp.data.decode('utf-8')
+            assert resp.status_code == check_status, resp.data
 
         if check_cookies:
             self._check_cookies(to_check=check_cookies)

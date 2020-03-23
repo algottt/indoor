@@ -1,4 +1,5 @@
 from flask import Blueprint
+from flask import current_app as app
 
 from app.common.decorators import auth_required, device_auth_required
 from app.content.schemas import FileListSchema, File
@@ -6,10 +7,11 @@ from lib.auth.manager import current_device
 from lib.utils import success, fail
 from lib.webargs import parser
 
-from .utils import save_device_health
+from .utils import save_device_health, save_command
 from .models import DeviceHealth, DeviceHealthException
 from .schemas import (OSVersionSchema, FilterDeviceHealthSchema, DeviceHealthListSchema,
-                      DeviceHealthSchema, AddDeviceHealthSchema,)
+                      DeviceHealthSchema, AddDeviceHealthSchema, SendCommandSchema,)
+from app.system import constants as COMMANDS
 
 
 mod = Blueprint('system', __name__, url_prefix='/system')
@@ -124,6 +126,39 @@ def add_device_health_view(**kwargs):
     return success(DeviceHealthSchema().dump(device_health))
 
 
+@mod.route('/commands/', methods=['POST'])
+@parser.use_kwargs(SendCommandSchema())
+def send_command_view(command, device_ids):
+    """Post command on devices.
+    ---
+    post:
+      tags:
+        - System
+      requestBody:
+        content:
+          application/json:
+            schema: SendCommandSchema
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  ok
+        400:
+          content:
+            application/json:
+              schema: FailSchema
+        5XX:
+          description: Unexpected error
+    """
+    save_command(command, device_ids)
+    return success('ok')
+
+
 @mod.route('/commands/')
 @device_auth_required
 def commands_view():
@@ -156,7 +191,15 @@ def commands_view():
           description: Unexpected error
     """
     # TODO: get device specified commands list # noqa
-    return success(dict(results=[]))
+
+    try:
+        commands = [command for command in app.cache.storage.lrange(f'{COMMANDS.REDIS_KEY}{COMMANDS.REDIS_KEY_DELIMITER}'
+                                                                    f'{current_device.id}', 0, -1)]
+        app.cache.storage.delete(f'{COMMANDS.REDIS_KEY}{COMMANDS.REDIS_KEY_DELIMITER}{current_device.id}')
+
+    except DeviceHealthException as e:
+        return fail(str(e))
+    return success(commands)
 
 
 @mod.route('/logs/', methods=['POST'])

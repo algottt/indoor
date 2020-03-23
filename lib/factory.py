@@ -99,7 +99,8 @@ def init_cache(app):
     return RedisCache(
         storage=redis.Redis(
             host=app.config['REDIS_HOST'],
-            port=app.config['REDIS_PORT']
+            port=app.config['REDIS_PORT'],
+            decode_responses=True
         ))
 
 

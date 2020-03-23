@@ -1,17 +1,17 @@
 import pytest
 
-from app.devices import constants as DEVICE
+from app.system import constants as COMMANDS
 
 from lib.utils import get_random_str
 from random import randint
 
 
-endpoint = 'devices.send_command_view'
+endpoint = 'system.send_command_view'
 
 
 @pytest.mark.parametrize("command,device_ids", [
-    (DEVICE.COMMANDS[0][1], [randint(0, 100)],),
-    (DEVICE.COMMANDS[1][1], [randint(0, 100), randint(0, 100), randint(0, 100)],),
+    (COMMANDS.COMMANDS[0][1], [randint(0, 100)],),
+    (COMMANDS.COMMANDS[1][1], [randint(0, 100), randint(0, 100), randint(0, 100)],),
 ])
 def test_default(client, get_command_record, command, device_ids):
     resp = client.post(
@@ -33,11 +33,11 @@ def test_default(client, get_command_record, command, device_ids):
     (get_random_str(), [randint(0, 100)],),
 
     # Malformed device_ids
-    (DEVICE.COMMANDS[0][1], [''],),
-    (DEVICE.COMMANDS[0][1], ['1a'],),
-    (DEVICE.COMMANDS[0][1], ['abc'],),
-    (DEVICE.COMMANDS[0][1], ['1,2,,3'],),
-    (DEVICE.COMMANDS[0][1], [get_random_str()],),
+    (COMMANDS.COMMANDS[0][1], [''],),
+    (COMMANDS.COMMANDS[0][1], ['1a'],),
+    (COMMANDS.COMMANDS[0][1], ['abc'],),
+    (COMMANDS.COMMANDS[0][1], ['1,2,,3'],),
+    (COMMANDS.COMMANDS[0][1], [get_random_str()],),
 ])
 def test_malformed_params_failure(client, command, device_ids):
     resp = client.post(

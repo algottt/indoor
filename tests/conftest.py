@@ -1,8 +1,9 @@
 import pytest
 
-from app.devices.utils import get_device_by_token, save_command, get_command_log_by_id
+from app.devices.utils import get_device_by_token
 from app.users.utils import get_user_by_id, save_user
 from app.users.constants import ROLE_MANAGER, ROLE_USER
+from app.system.utils import save_command, get_commands
 
 from app.publishers.utils import save_publisher
 
@@ -135,5 +136,5 @@ def command_cache():
 @pytest.fixture(scope='function')
 def get_command_record():
     def func(device_id):
-        return get_command_log_by_id(device_id)
+        return get_commands(device_id)
     return func

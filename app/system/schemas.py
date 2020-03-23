@@ -1,11 +1,14 @@
 from webargs import fields, validate
 from webargs.fields import ma
 from marshmallow_sqlalchemy import ModelSchema
+from marshmallow import ValidationError, pre_load
+from marshmallow.validate import Length, OneOf
 
 from app.common.schemas import FilterSchema, SuccessListSchema
 from app.devices.schemas import DeviceSchema
 from app.system.models import DeviceHealth
 from app.system.constants import OS
+from . import constants as COMMANDS
 
 
 class OSVersionSchema(ma.Schema):
@@ -42,3 +45,15 @@ class DeviceHealthListSchema(SuccessListSchema):
 
 class AddDeviceHealthSchema(ma.Schema):
     software_version = fields.Str(validate=validate.Length(min=0, max=255), missing=None)
+
+
+class SendCommandSchema(ma.Schema):
+    command = fields.Str(validate=OneOf([s[1] for s in COMMANDS.COMMANDS]), missing=COMMANDS.SHOW_INFO)
+    device_ids = fields.List(fields.Int(), validate=Length(min=1), required=True)
+
+    @pre_load
+    def check_device_ids(self, data, **_):
+        for i in data['device_ids']:
+            if not isinstance(i, int):
+                raise ValidationError('ValueError: Value must be int', field_name='device_ids')
+        return data
